@@ -1,0 +1,21 @@
+[
+  { "id": "RMT",  "name": "Reinmetall",             "category": "stock",     "sector": "defense",     "startingPriceCents": 10000, "noisePerStep": 0.015 },
+  { "id": "MCH",  "name": "Macrohard",              "category": "stock",     "sector": "tech",        "startingPriceCents": 8000,  "noisePerStep": 0.015 },
+  { "id": "ALB",  "name": "AlphaBett",              "category": "stock",     "sector": "tech",        "startingPriceCents": 12000, "noisePerStep": 0.012 },
+  { "id": "CAI",  "name": "ClosedAI",               "category": "stock",     "sector": "ai/tech",     "startingPriceCents": 7500,  "noisePerStep": 0.020 },
+  { "id": "BMU",  "name": "BMUU",                   "category": "stock",     "sector": "automotives", "startingPriceCents": 6000,  "noisePerStep": 0.012 },
+  { "id": "MOO",  "name": "Moonshot Aerospace",     "category": "stock",     "sector": "aerospace",   "startingPriceCents": 10000, "noisePerStep": 0.018 },
+  { "id": "HYPE", "name": "HypeLoop Social",        "category": "stock",     "sector": "social media","startingPriceCents": 7500,  "noisePerStep": 0.022 },
+  { "id": "CROP", "name": "Down to Earth Farms",    "category": "stock",     "sector": "agriculture", "startingPriceCents": 4000,  "noisePerStep": 0.012 },
+  { "id": "PILL", "name": "Placebo Pharma",         "category": "stock",     "sector": "health",      "startingPriceCents": 4500,  "noisePerStep": 0.014 },
+  { "id": "GOLD", "name": "Gold",                   "category": "commodity", "sector": "metals",      "startingPriceCents": 21000, "noisePerStep": 0.006, "unit": "per oz" },
+  { "id": "OIL",  "name": "Crude Oil",              "category": "commodity", "sector": "energy",      "startingPriceCents": 7000,  "noisePerStep": 0.012, "unit": "per barrel" },
+  { "id": "SLV",  "name": "Silver",                 "category": "commodity", "sector": "metals",      "startingPriceCents": 2500,  "noisePerStep": 0.010, "unit": "per oz" },
+  { "id": "COF",  "name": "Coffee",                 "category": "commodity", "sector": "food",        "startingPriceCents": 1200,  "noisePerStep": 0.012, "unit": "per lb" },
+  { "id": "NRC",  "name": "NotRugpullCoin",         "category": "crypto",    "sector": "crypto",      "startingPriceCents": 1000,  "noisePerStep": 0.030 },
+  { "id": "WOOF", "name": "WoofCoin",               "category": "crypto",    "sector": "meme coin",   "startingPriceCents": 200,   "noisePerStep": 0.040 },
+  { "id": "BCN",  "name": "Bitcorn",                "category": "crypto",    "sector": "crypto",      "startingPriceCents": 40000, "noisePerStep": 0.025 },
+  { "id": "EUR",  "name": "Euro",                   "category": "forex",     "sector": "EUR / USD",   "startingPriceCents": 10800, "noisePerStep": 0.005, "unit": "per 100 EUR" },
+  { "id": "JPY",  "name": "Japanese Yen",           "category": "forex",     "sector": "JPY / USD",   "startingPriceCents": 6700,  "noisePerStep": 0.006, "unit": "per 10,000 JPY" },
+  { "id": "CHF",  "name": "Swiss Franc",            "category": "forex",     "sector": "CHF / USD",   "startingPriceCents": 11200, "noisePerStep": 0.004, "unit": "per 100 CHF" }
+]

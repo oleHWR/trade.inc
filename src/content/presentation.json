@@ -1,0 +1,58 @@
+{
+  "brand": { "name": "trade.inc", "tagline": "100 days. Zero plan B." },
+  "characters": {
+    "mom":    { "name": "Mom",           "role": "Worried parent",       "avatar": "👩‍🦳", "color": "#ff9ec7" },
+    "dad":    { "name": "Dad",           "role": "Skeptical parent",     "avatar": "👨‍🦲", "color": "#ffc46b" },
+    "chad":   { "name": "Chad",          "role": "Smug classmate",       "avatar": "😎", "color": "#7cc8ff" },
+    "gerald": { "name": "Uncle Gerald",  "role": "Questionable mentor",  "avatar": "🧔‍♂️", "color": "#b6f08c" }
+  },
+  "intro": [
+    { "who": "dad",    "text": "So. You dropped out of university. To trade. On a laptop. In your room." },
+    { "who": "mom",    "text": "We love you! But we also love our savings account. Here is $20,000. It is all we have, plus a little bit of guilt." },
+    { "who": "dad",    "text": "One hundred days. We check in on you at regular intervals. Miss the numbers once, and you are asking for a job. Probably at McTrade's Burger Emporium." },
+    { "who": "gerald", "text": "Relax, kid. Read the news, trust your gut, ignore your gut when it is wrong. Reach $1,000,000 and you never have to flip a burger again." }
+  ],
+  "howToPlay": [
+    { "icon": "🗞️", "title": "Read the world", "text": "News pops up on the map. Some of it moves prices instantly. Some of it is a warning shot with a follow-up. Some of it is a rumour." },
+    { "icon": "📈", "title": "Trade anything", "text": "Stocks, gold, oil, crypto and forex. Go long when you expect a rise, go short when you expect a crash." },
+    { "icon": "🏁", "title": "Pass the checkpoints", "text": "Your parents review your wealth at set days. Miss the minimum once and it is over. Reach $1M and you win on the spot." },
+    { "icon": "⏸️", "title": "Time never waits", "text": "Reading is not free. The clock runs while you think. Pause when you must. You cannot trade while paused." }
+  ],
+  "checkpointMessages": {
+    "10": { "who": "mom",    "pass": "Day 10! Dad says you are \"fine\". That is his version of a trophy.", "fail": "We need to talk." },
+    "20": { "who": "dad",    "pass": "Twenty days in. Still has a laptop. I am cautiously not yelling.", "fail": "We need to talk." },
+    "40": { "who": "gerald", "pass": "Day 40 and still alive! I told your parents you would make it. I was lying, but nicely.", "fail": "Well. That is a bad day." },
+    "60": { "who": "mom",    "pass": "Sixty days! We told the neighbours you are \"in finance\". They asked which kind.", "fail": "We need to talk." },
+    "80": { "who": "chad",   "pass": "Eighty days? Cute. I started trading at 14. In my head. Without money. Very profitable.", "fail": "Ha. Ha." },
+    "95": { "who": "dad",    "pass": "You are really doing it. Do not mess it up now. No pressure. A little pressure.", "fail": "We need to talk." }
+  },
+  "win": {
+    "title": "Financial freedom",
+    "lines": [
+      "You hit $1,000,000. Dad stopped talking mid-sentence and sat down.",
+      "Mom cried. Chad texted \"cool\" and then called three times.",
+      "The burger emporium sent a handwritten note: \"We will wait.\""
+    ],
+    "carName": "The Sunrise GT"
+  },
+  "lose": {
+    "title": "Plan B activated",
+    "company": "McTrade's Burger Emporium",
+    "position": "Junior Associate Fry Cook (Trainee)",
+    "lines": [
+      "Your parents have arranged an interview. You will start Monday.",
+      "Please read the terms carefully, or sign them quickly. Both are traditional."
+    ],
+    "clauses": [
+      "I understand that trading is, in fact, not a career.",
+      "I will not describe fries as \"a position\".",
+      "I agree to the uniform, the hat and the little name tag.",
+      "I accept that the ketchup is not a hedge."
+    ]
+  },
+  "reasons": {
+    "bankrupt": "Your total wealth fell to zero or below. Bankruptcy is immediate.",
+    "checkpoint": "You missed a parent review. Checkpoints are checked once, at the end of the named day.",
+    "deadline": "Day 100 arrived and you were short of $1,000,000."
+  }
+}
