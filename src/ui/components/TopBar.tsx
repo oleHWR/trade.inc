@@ -7,6 +7,7 @@ import { useGame, useTween } from '../hooks';
 import { isMuted, setMuted } from '../sound';
 import { store } from '../store';
 import { Logo } from './shared';
+import { Icon } from './icons';
 
 export function TopBar({ theme, onTheme }: { theme: string; onTheme: () => void }) {
   const g = useGame();
@@ -74,12 +75,12 @@ export function TopBar({ theme, onTheme }: { theme: string; onTheme: () => void 
 
       <div className="controls">
         <button className={paused ? 'btn primary' : 'btn'} onClick={() => store.togglePause()} disabled={ended} aria-label={paused ? 'Resume game' : 'Pause game'}>
-          {paused ? '▶ Resume' : '⏸ Pause'}
+          {paused ? <><Icon name="play" /> Resume</> : <><Icon name="pause" /> Pause</>}
         </button>
         <div className="seg" role="group" aria-label="Game speed">
-          {[1, 2, 4].map((x) => (
+          {[0.5, 1, 2, 4].map((x) => (
             <button key={x} className={g.speed === x ? 'on' : ''} onClick={() => store.setSpeed(x)} aria-pressed={g.speed === x} title={`${x}x speed`}>
-              {x}×
+              {x === 0.5 ? '½' : x}×
             </button>
           ))}
         </div>
@@ -92,14 +93,14 @@ export function TopBar({ theme, onTheme }: { theme: string; onTheme: () => void 
             setMutedState(!muted);
           }}
         >
-          {muted ? '🔇' : '🔊'}
+          <Icon name={muted ? 'mute' : 'volume'} size={18} />
         </button>
         <button className="btn icon" aria-label="Toggle light or dark theme" title="Theme" onClick={onTheme}>
-          {theme === 'dark' ? '☀️' : '🌙'}
+          <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={18} />
         </button>
         <div className="menu-wrap">
           <button className="btn icon" aria-label="Menu" aria-expanded={menu} onClick={() => setMenu((m) => !m)}>
-            ⋯
+            <Icon name="more" size={18} />
           </button>
           {menu && (
             <div className="menu" onMouseLeave={() => setMenu(false)}>
@@ -109,7 +110,7 @@ export function TopBar({ theme, onTheme }: { theme: string; onTheme: () => void 
                   store.toTitle();
                 }}
               >
-                💾 Save and exit
+                <Icon name="save" /> Save and exit
               </button>
               <button
                 onClick={() => {
@@ -117,7 +118,7 @@ export function TopBar({ theme, onTheme }: { theme: string; onTheme: () => void 
                   if (confirm('Restart? Your current run will be lost.')) store.newRun(false);
                 }}
               >
-                🔄 Restart run
+                <Icon name="restart" /> Restart run
               </button>
               <span className="menu-note">{CONTENT.assets.length} assets · play money</span>
             </div>

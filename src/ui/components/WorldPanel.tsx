@@ -1,13 +1,14 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { CONTENT, presentation } from '../../content';
 import { COUNTRY_PATHS, MAP_HEIGHT, MAP_WIDTH } from '../../content/worldMap';
-import { displayDay } from '../../engine/engine';
+import { displayDay, storyStillMoving } from '../../engine/engine';
 import type { EventInstance } from '../../engine/types';
 import { useGame } from '../hooks';
 import { project } from '../mapProjection';
 import { store } from '../store';
 import { TAG_COLOR, TAG_GLYPH, TAG_LABEL, dayLabel, mentionedAssets } from '../util';
 import { Avatar, AssetBadge } from './shared';
+import { Icon } from './icons';
 
 const MapBase = memo(function MapBase() {
   const lons = [-120, -60, 0, 60, 120];
@@ -82,9 +83,9 @@ export function WorldPanel({ selectedId, onSelect, onAsset }: { selectedId: numb
         <h2>The world</h2>
         <div className="head-right">
           <div className="seg small" role="group" aria-label="World view">
-            <button className={view === 'map' ? 'on' : ''} onClick={() => setView('map')}>🗺 Map</button>
+            <button className={view === 'map' ? 'on' : ''} onClick={() => setView('map')}><Icon name="map" /> Map</button>
             <button className={view === 'feed' ? 'on' : ''} onClick={() => setView('feed')}>
-              📰 News{unread > 0 && <span className="dot-count">{unread}</span>}
+              <Icon name="news" /> News{unread > 0 && <span className="dot-count">{unread}</span>}
             </button>
           </div>
           <span className="muted">{s.instances.length} {s.instances.length === 1 ? 'story' : 'stories'}</span>
@@ -119,16 +120,23 @@ export function WorldPanel({ selectedId, onSelect, onAsset }: { selectedId: numb
                   {age < 1.5 && <circle className="ping slow" r="9" fill="none" stroke={col} />}
                   {isSel && <circle r="17" className="sel-ring" />}
                   <circle r="11" fill={anyUnread ? col : 'var(--panel-2)'} stroke={col} strokeWidth="2.2" strokeDasharray={anyUnread ? undefined : '3 2'} />
-                  <text className="marker-glyph" textAnchor="middle" dy="4.2" fill={anyUnread ? '#0b0e14' : col}>
-                    {c.items.length > 1 ? c.items.length : TAG_GLYPH[lead.tag]}
-                  </text>
+                  {c.items.length === 1 && lead.tag === 'announcement' ? (
+                    <g stroke={anyUnread ? '#0b0e14' : col} strokeWidth="1.8" fill="none" strokeLinecap="round">
+                      <circle r="5.5" />
+                      <path d="M0 -3v3l2 1.5" />
+                    </g>
+                  ) : (
+                    <text className="marker-glyph" textAnchor="middle" dy="4.2" fill={anyUnread ? '#0b0e14' : col}>
+                      {c.items.length > 1 ? c.items.length : TAG_GLYPH[lead.tag]}
+                    </text>
+                  )}
                 </g>
               );
             })}
           </svg>
           {globals.length > 0 && (
             <div className="global-chips">
-              <span className="muted small">🌐 Worldwide</span>
+              <span className="muted small"><Icon name="globe" /> Worldwide</span>
               {globals.slice(-3).map((i) => (
                 <button key={i.id} className={`gchip ${i.read ? '' : 'unread'} ${selected?.id === i.id ? 'sel' : ''}`} style={{ borderColor: TAG_COLOR[i.tag] }} onClick={() => pick(i.id)}>
                   {CONTENT.eventById.get(i.eventId)!.headline.slice(0, 34)}…
@@ -198,10 +206,15 @@ function NewsCard({ inst, cluster, onPick, onAsset }: { inst: EventInstance | nu
         )}
       </div>
       <h3 className="news-headline">{def.headline}</h3>
+      {storyStillMoving(s, inst.id) && (
+        <p className="moving" title="This story's price impact has not fully played out yet.">
+          <i /> Markets still reacting. There is time to trade this.
+        </p>
+      )}
       <p className="news-desc">{def.description}</p>
       {parent && <p className="news-follow">↳ Follows: “{parent.headline}”</p>}
-      {inst.tag === 'announcement' && <p className="news-follow">⏳ Developing story. More could follow.</p>}
-      {inst.tag === 'rumor' && <p className="news-follow">❓ Unconfirmed. Treat with suspicion and snacks.</p>}
+      {inst.tag === 'announcement' && <p className="news-follow"><Icon name="clock" /> Developing story. More could follow.</p>}
+      {inst.tag === 'rumor' && <p className="news-follow"><Icon name="help" /> Unconfirmed. Treat with suspicion and snacks.</p>}
       <div className="news-foot">
         {mentions.length > 0 && (
           <div className="spotlight">

@@ -6,6 +6,7 @@ import { store } from '../store';
 import { fmtMoney } from '../../engine/money';
 import type { CharacterId } from '../../engine/types';
 import { Avatar } from './shared';
+import { Icon } from './icons';
 
 export function Cutscene() {
   const g = useGame();
@@ -45,9 +46,9 @@ export function Cutscene() {
       <div className="cut-bg" aria-hidden="true" />
       <div className="cut-stage">
         <div className="cut-chips">
-          <span>💵 Start {fmtMoney(s.settings.startingCashCents, { decimals: false })}</span>
-          <span>🏁 Goal {fmtMoney(s.settings.targetWealthCents, { decimals: false })}</span>
-          <span>📅 {s.settings.gameDays} days · {Math.round(s.settings.durationSeconds / 60)} min</span>
+          <span><Icon name="cash" /> Start {fmtMoney(s.settings.startingCashCents, { decimals: false })}</span>
+          <span><Icon name="flag" /> Goal {fmtMoney(s.settings.targetWealthCents, { decimals: false })}</span>
+          <span><Icon name="calendar" /> {s.settings.gameDays} days · {Math.round(s.settings.durationSeconds / 60)} min</span>
         </div>
         <div className="cut-box" key={i}>
           <Avatar who={line.who} size={96} />
@@ -67,7 +68,7 @@ export function Cutscene() {
                   next();
                 }}
               >
-                {done && last ? 'Start trading ▶' : 'Next ▸'}
+                {done && last ? <>Start trading <Icon name="play" /></> : 'Next ▸'}
               </button>
             </div>
           </div>

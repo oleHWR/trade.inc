@@ -232,6 +232,28 @@ for (const dur of [600, 900, 1200]) {
   const errs = buildContent(assets, [bad]).errors.join('\n');
   check('unknown asset + -100% jump rejected', /unknown asset ZZZ/.test(errs) && /greater than|> -1/.test(errs) || /changeFraction/.test(errs));
 }
+// ---- probabilistic follow-ups roll once per publication
+{
+  const assets: Asset[] = [{ id: 'A', name: 'A', category: 'stock', sector: 's', startingPriceCents: 100, noisePerStep: 0 }];
+  const ev = (id: string, root: boolean, fu: EventDef['followUps']): EventDef => ({
+    schemaVersion: 1, id, pool: 'p', headline: id, description: 'd', location: { kind: 'global', lat: null, lon: null },
+    selection: { randomEligible: root, weight: root ? 1 : 0 }, clueStyle: 'indirect', displayDays: 3, effects: [], followUps: fu,
+  });
+  const ctx = buildContent(assets, [ev('r', true, [{ eventId: 'c', delayDays: 1, chance: 0.5 }]), ev('c', false, [])]);
+  eq('chance content valid', ctx.errors.length, 0);
+  const settings: RunSettings = { ...DEFAULT_SETTINGS, checkpoints: [], eventWindows: [{ startDay: 0, endDay: 10, rootCount: 1 }], targetWealthCents: 1e12 };
+  let published = 0;
+  for (let seed = 1; seed <= 200; seed++) {
+    const s = createRun(settings, ctx, seed);
+    advance(s, ctx, 20 * 6);
+    const n = s.instances.filter((i) => i.eventId === 'c').length;
+    check('chance chapter at most once', n <= 1);
+    published += n;
+  }
+  check('chance 0.5 publishes roughly half the time', published > 60 && published < 140, String(published));
+  const bad = buildContent(assets, [ev('r', true, [{ eventId: 'c', delayDays: 1, chance: 1.5 }]), ev('c', false, [])]);
+  check('invalid chance rejected', bad.errors.some((e) => /chance/.test(e)));
+}
 // ---- default content is valid
 eq('default content valid', CONTENT.errors.length, 0);
 

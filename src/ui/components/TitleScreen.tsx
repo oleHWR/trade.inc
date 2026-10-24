@@ -6,6 +6,7 @@ import { useGame } from '../hooks';
 import { store } from '../store';
 import { play } from '../sound';
 import { Logo } from './shared';
+import { Icon } from './icons';
 
 const TICKERS = ['RMT ▲ 4.2%', 'GOLD ▲ 1.1%', 'NRC ▼ 94%', 'WOOF ▲ 100%', 'OIL ▼ 30%', 'COF ▲ 60%', 'ALB ▲ 55%', 'BMU ▼ 32%', 'CHF ▲ 14%', 'HYPE ▼ 42%', 'MOO ▲ 60%', 'PILL ▲ 75%', 'BCN ▲ 50%', 'JPY ▲ 38%'];
 
@@ -72,7 +73,7 @@ export function TitleScreen() {
                 store.newRun(true);
               }}
             >
-              ▶ New run
+              <Icon name="play" /> New run
             </button>
             {save && (
               <button
@@ -82,7 +83,7 @@ export function TitleScreen() {
                   store.continueRun();
                 }}
               >
-                ⏯ Continue · Day {save.day} · {fmtMoney(save.wealthCents, { decimals: false })}
+                <Icon name="arrowRight" /> Continue · Day {save.day} · {fmtMoney(save.wealthCents, { decimals: false })}
               </button>
             )}
           </div>
@@ -91,7 +92,7 @@ export function TitleScreen() {
         <div className="howto">
           {presentation.howToPlay.map((h) => (
             <div key={h.title} className="howto-card">
-              <span>{h.icon}</span>
+              <span className="howto-icon"><Icon name={h.icon} size={22} /></span>
               <b>{h.title}</b>
               <p>{h.text}</p>
             </div>

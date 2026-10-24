@@ -230,7 +230,7 @@ function processBoundary(s: RunState, ctx: Content, tb: number): void {
   while (s.queue.length && s.queue[0].at <= tb + EPS && guard++ < 10000) {
     const item = s.queue.shift()!;
     if (item.kind === 'publish') publishEvent(s, ctx, item.eventId, item.parentInstance, tb);
-    else applyEffect(s, ctx, item.eventId, item.effectIndex, tb);
+    else applyEffect(s, ctx, item.eventId, item.effectIndex, tb, item.instanceId);
   }
 
   // recovery guard
@@ -279,10 +279,14 @@ function publishEvent(s: RunState, ctx: Content, eventId: string, parent: number
   def.effects.forEach((_, i) =>
     pushQueue(s, { at: tb + def.effects[i].delayDays, kind: 'effect', instanceId: inst.id, eventId, effectIndex: i }),
   );
-  for (const f of def.followUps) pushQueue(s, { at: tb + f.delayDays, kind: 'publish', eventId: f.eventId, parentInstance: inst.id });
+  for (const f of def.followUps) {
+    // probabilistic chapters roll once, at the parent's publication
+    if (f.chance !== undefined && f.chance < 1 && nextRandom(s) >= f.chance) continue;
+    pushQueue(s, { at: tb + f.delayDays, kind: 'publish', eventId: f.eventId, parentInstance: inst.id });
+  }
 }
 
-function applyEffect(s: RunState, ctx: Content, eventId: string, idx: number, tb: number): void {
+function applyEffect(s: RunState, ctx: Content, eventId: string, idx: number, tb: number, instanceId?: number): void {
   const def = ctx.eventById.get(eventId);
   const fx = def?.effects[idx];
   if (!def || !fx) return;
@@ -291,7 +295,7 @@ function applyEffect(s: RunState, ctx: Content, eventId: string, idx: number, tb
   if (fx.type === 'price_jump') {
     s.rawPrices[fx.assetId] *= 1 + fx.changeFraction;
   } else if (fx.type === 'price_trend') {
-    s.trends.push({ id: ++s.idCounter, assetId: fx.assetId, startDay: tb, endDay: tb + fx.durationDays, changeFraction: fx.changeFraction });
+    s.trends.push({ id: ++s.idCounter, assetId: fx.assetId, startDay: tb, endDay: tb + fx.durationDays, changeFraction: fx.changeFraction, instanceId });
   } else if (fx.type === 'near_collapse' && fx.recovery) {
     s.rawPrices[fx.assetId] *= 1 + fx.changeFraction;
     s.recoveries[fx.assetId] = {
@@ -515,6 +519,11 @@ export function submitTrade(s: RunState, ctx: Content, action: TradeAction, asse
   addLog(s, 'trade', message, { tone: 'neutral' });
   checkAchievements(s);
   return { ok: true, message, record: rec };
+}
+
+/** True while a story still has price effects waiting or unfolding (no direction or size revealed). */
+export function storyStillMoving(s: RunState, instanceId: number): boolean {
+  return s.queue.some((q) => q.kind === 'effect' && q.instanceId === instanceId) || s.trends.some((t) => t.instanceId === instanceId);
 }
 
 export function markRead(s: RunState, instanceId: number): void {

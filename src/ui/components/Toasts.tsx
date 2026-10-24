@@ -5,6 +5,7 @@ import type { CharacterId } from '../../engine/types';
 import { store } from '../store';
 import { TAG_COLOR, TAG_LABEL } from '../util';
 import { Avatar } from './shared';
+import { Icon } from './icons';
 
 interface Toast {
   id: number;
@@ -50,7 +51,7 @@ export function Toasts({ onNews }: { onNews: (id: number) => void }) {
     <div className="toasts" aria-live="polite">
       {items.map((t) => (
         <div key={t.id} className={`toast ${t.kind}`} style={{ borderLeftColor: t.color }} onClick={() => t.instanceId && onNews(t.instanceId)} role={t.instanceId ? 'button' : undefined}>
-          {t.who ? <Avatar who={t.who} size={38} /> : <span className="toast-icon" style={{ color: t.color }}>{t.kind === 'news' ? '📡' : t.kind === 'achievement' ? '🏆' : '🚨'}</span>}
+          {t.who ? <Avatar who={t.who} size={38} /> : <span className="toast-icon" style={{ color: t.color }}><Icon name={t.kind === 'news' ? 'signal' : t.kind === 'achievement' ? 'trophy' : 'alert'} size={24} /></span>}
           <div>
             <b style={{ color: t.color }}>{t.title}</b>
             {t.body && <p>{t.body}</p>}

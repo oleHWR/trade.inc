@@ -64,7 +64,7 @@ export const TAG_COLOR: Record<EventTag, string> = {
 
 export const TAG_GLYPH: Record<EventTag, string> = {
   breaking: '!',
-  announcement: '⏳',
+  announcement: '',
   rumor: '?',
   update: '↻',
 };

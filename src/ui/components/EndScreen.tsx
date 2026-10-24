@@ -6,6 +6,7 @@ import { fmtMoney } from '../../engine/money';
 import { useGame } from '../hooks';
 import { play } from '../sound';
 import { store } from '../store';
+import { Icon } from './icons';
 
 function Car() {
   return (
@@ -96,7 +97,7 @@ export function EndScreen() {
     <div className={`end-screen ${won ? 'win' : 'lose'}`} role="dialog" aria-modal="true" aria-label={P.title}>
       {won && <Confetti />}
       <div className="end-card">
-        <div className="end-kicker">{won ? '🏁 Run complete' : '☠ Run over'}</div>
+        <div className="end-kicker">{won ? <><Icon name="flag" /> Run complete</> : <><Icon name="skull" /> Run over</>}</div>
         <h1>{P.title}</h1>
         <p className="end-reason">
           {won ? `You reached ${fmtMoney(o.wealthCents, { decimals: false })} on day ${displayDay(s, o.timeDays)}.` : reason}
@@ -142,7 +143,7 @@ export function EndScreen() {
               <div className="sign-row">
                 <span className="sign-label">Signature</span>
                 <div className="signature-line">
-                  {signed ? <span className="signature">Aspiring Trader</span> : <button className="btn" onClick={() => { play('click'); setSigned(true); }}>✍ Sign here</button>}
+                  {signed ? <span className="signature">Aspiring Trader</span> : <button className="btn" onClick={() => { play('click'); setSigned(true); }}><Icon name="pen" /> Sign here</button>}
                   {signed && <span className="stamp">HIRED</span>}
                 </div>
               </div>
@@ -157,7 +158,7 @@ export function EndScreen() {
 
         <div className="end-actions">
           <button className="btn primary xl" onClick={() => store.newRun(false)}>
-            ↻ New run
+            <Icon name="restart" /> New run
           </button>
           <button className="btn xl" onClick={() => store.toTitle()}>Title screen</button>
         </div>

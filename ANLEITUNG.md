@@ -47,18 +47,23 @@ Die Demo ist ein normaler Lauf mit zwei URL-Parametern:
 
 Danach auf dem Titelscreen **New run** klicken. Die Laufzeit ist über die URL vorbelegt. Der Marktrauschen-Verlauf der Kurse bleibt trotzdem zufällig. Der Eventplan ist fix.
 
-### Vorschlag für den Demo-Ablauf (Seed 42, ca. 3 Minuten)
+### Vorschlag für den Demo-Ablauf (Seed 42, ca. 1:30 Minuten)
 
-Bei 5 Minuten Laufzeit ist 1 Spieltag = 3 Sekunden. Mit **2×** oder **4×** läuft es schneller.
+Bei 5 Minuten Laufzeit ist 1 Spieltag = 3 Sekunden. Mit **½×** läuft es langsamer, mit **2×** oder **4×** schneller.
+
+Breaking News bewegen den Kurs nur kurz sofort (etwa ein Fünftel der Bewegung). Der Rest folgt ab einem Spieltag später, verteilt über 2,5 Tage. Solange das passiert, zeigt die News-Karte **Markets still reacting**. Das ist das Zeitfenster zum Handeln.
 
 | Zeit | Spieltag | Was passiert | Was zeigen |
 | --- | --- | --- | --- |
-| ca. 5 s | 1,7 | "Central bank announces an announcement about interest rates" (Developing) | Ankündigung lesen, Karte, Marker. Jetzt **Long** auf ALB, MCH, BMU oder HYPE |
-| ca. 13 s | 4,4 | Banknoten-Schriftart-Streit (Euro) | Sofort-Schock, Kurs hat sich schon bewegt |
-| ca. 20 s | 6,7 | "Rates cut: markets confused but excited" | Positionierte Aktien springen. Gewinn mitnehmen, **Sell** |
-| ca. 30 s | 9,9 | Rechenzentrum-Brand | Short auf CAI oder MCH zeigen (**Short** / **Cover**) |
-| ca. 51 s | 17,1 | NotRugpullCoin "bleibt definitiv" | Kurs steigt, dann Folge-Event nach 3 Tagen: Totalabsturz mit Erholung |
-| ca. 60 s | 10 | Erster Eltern-Check (mind. $5.000) | Checkpoint-Banner, Nachricht von Mom |
+| ca. 5 s | 1,7 | "Central bank announces an announcement about interest rates" (Developing) | Ankündigung, Karte, Marker. Jetzt **Long** auf ALB, MCH, BMU oder HYPE |
+| ca. 13 s | 4,4 | Euro-Banknoten-Schriftart (Breaking) | Hinweis "Markets still reacting": **Short** auf EUR, der Euro fällt in den nächsten Tagen |
+| ca. 26 s | 8,7 | "Rates cut: markets confused but excited" | Positionierte Aktien steigen über die nächsten Sekunden. Danach **Sell** |
+| ca. 30 s | 10 | Erster Eltern-Check (mind. $5.000) | Checkpoint-Banner, Nachricht von Mom |
+| ca. 37 s | 12,3 | Supermärkte akzeptieren NotRugpullCoin | Schnell NRC kaufen, der Großteil des Anstiegs kommt noch |
+| ca. 51 s | 17,1 | Promi-Hund wirbt für WoofCoin | Long auf WOOF. Folge-Event bei ca. 72 s: Der Hund dementiert, Zeit für **Short** |
+| ca. 82 s | 27,4 | Down to Earth Farms verkauft Steine als "organic" | Absturz von CROP kommt 1,5 Tage später: aussteigen oder shorten, danach am Tiefpunkt kaufen, der Kurs erholt sich garantiert |
+
+Die Folge-Events stehen fest. Nur das Eichhörnchen-Event von ClosedAI hat eine 50-%-Chance auf ein Folge-Event.
 
 Zum Abschluss der Präsentation das Ende zeigen. Siegbild oder Burger-Vertrag lassen sich im Dev-Server direkt auslösen. Dazu in der Browser-Konsole eingeben:
 
@@ -75,7 +80,7 @@ Das geht nur mit `npm run dev`. Im Preview-Build ist `__store` nicht verfügbar.
 
 ```bash
 npm run validate:content   # prüft assets.json und events.json
-npm run test:engine        # 74 Verhaltenstests der Spiellogik
+npm run test:engine        # Verhaltenstests der Spiellogik
 npm run sim -- 150         # Balance-Test mit Bots
 ```
 
@@ -86,4 +91,5 @@ npm run sim -- 150         # Balance-Test mit Bots
 | Seite bleibt leer | `npm install` vergessen oder Node zu alt |
 | Port 5173 belegt | Vite wählt automatisch den nächsten Port, die Adresse steht im Terminal |
 | Spiel läuft nicht weiter | Pausiert? Leertaste drücken. Der Browser-Tab muss sichtbar sein |
+| Zu hektisch | Geschwindigkeit **½×** oben rechts oder längere Laufzeit (15 / 20 Min) wählen |
 | Alten Lauf loswerden | Menü `⋯` oben rechts, **Restart run** |

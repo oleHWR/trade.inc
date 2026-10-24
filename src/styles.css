@@ -105,7 +105,8 @@ small { font-size: 11.5px; }
 .chip.pass { color: var(--up); border-color: color-mix(in srgb, var(--up) 40%, transparent); }
 .chip.fail { color: var(--down); border-color: color-mix(in srgb, var(--down) 40%, transparent); }
 .chip.goal { color: var(--amber); }
-.avatar { display: inline-grid; place-items: center; border-radius: 50%; border: 2px solid; flex: none; line-height: 1; }
+.avatar { display: inline-grid; place-items: center; border-radius: 50%; border: 2px solid; flex: none; line-height: 1; overflow: hidden; }
+.icon { display: inline-block; vertical-align: -0.17em; flex: none; }
 .asset-badge { display: inline-grid; place-items: center; border-radius: 10px; border: 1px solid; font-weight: 800; letter-spacing: -0.02em; flex: none; }
 .signed { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .signed.pos { color: var(--up); } .signed.neg { color: var(--down); } .signed.flat { color: var(--muted); }
@@ -223,6 +224,10 @@ small { font-size: 11.5px; }
 .cluster-nav { margin-left: auto; display: inline-flex; gap: 8px; align-items: center; }
 .cluster-nav button { background: var(--panel-3); border: 0; border-radius: 6px; width: 22px; height: 22px; }
 .news-headline { font-size: 17px; letter-spacing: -0.02em; margin: 6px 0 4px; }
+.moving { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: var(--amber); margin: 0 0 6px; }
+.moving i { width: 8px; height: 8px; border-radius: 50%; background: var(--amber); animation: blinkDot 1s ease-in-out infinite alternate; }
+@keyframes blinkDot { to { opacity: 0.25; } }
+.howto-icon { color: var(--accent); }
 .news-desc { color: var(--muted); font-size: 13.5px; }
 .news-follow { margin-top: 6px; font-size: 12.5px; color: var(--dim); font-style: italic; }
 .news-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; margin-top: 10px; }

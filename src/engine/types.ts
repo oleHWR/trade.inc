@@ -47,7 +47,8 @@ export interface EventDef {
   clueStyle: ClueStyle;
   displayDays: number;
   effects: EventEffect[];
-  followUps: { eventId: string; delayDays: number }[];
+  /** `chance` (0..1] makes a follow-up probabilistic: rolled once when the parent publishes. Omitted = guaranteed. */
+  followUps: { eventId: string; delayDays: number; chance?: number }[];
   /** Optional presentation hints (not part of the market model). */
   tag?: EventTag;
   quip?: { who: CharacterId; text: string };
@@ -106,6 +107,7 @@ export interface ActiveTrend {
   startDay: number;
   endDay: number;
   changeFraction: number;
+  instanceId?: number;
 }
 
 export interface RecoveryCycle {

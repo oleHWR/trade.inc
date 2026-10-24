@@ -61,11 +61,14 @@ function runBot(seed: number, skill: number) {
         opps.push({ id: r.assetId, dir: 1, ln: Math.log(r.targetPriceCents / s.prices[r.assetId]), at: r.endDay });
       }
     }
+    // trends already unfolding: the remaining part is still tradeable
     for (const tr of s.trends) {
-      const inst = s.instances.find((i) => i.id === tr.id);
-      void inst;
+      if (tr.instanceId === undefined || !known.has(tr.instanceId)) continue;
+      const left = Math.max(0, Math.min(1, (tr.endDay - Math.max(now, tr.startDay)) / (tr.endDay - tr.startDay)));
+      const ln = Math.log(1 + tr.changeFraction) * left;
+      if (left > 0.15) opps.push({ id: tr.assetId, dir: ln >= 0 ? 1 : -1, ln: Math.abs(ln), at: Math.max(now + 0.01, tr.startDay) });
     }
-    const near = opps.filter((o) => o.at - now <= 12 && o.ln > 0.15);
+    const near = opps.filter((o) => o.at - now <= 12 && o.ln > 0.12);
     near.sort((a, b) => b.ln - a.ln);
     const best = near[0];
     const holdingId = Object.keys(s.longs)[0] ?? Object.keys(s.shorts)[0];
@@ -87,14 +90,16 @@ function runBot(seed: number, skill: number) {
 const N = Number(process.argv[2] ?? 150);
 for (const skill of [0.35, 0.6, 0.85, 1]) {
   const results: { w: number; kind: string }[] = [];
+  const failDays: Record<string, number> = {};
   for (let seed = 1; seed <= N; seed++) {
     const { s, wealth } = runBot(seed, skill);
     results.push({ w: wealth, kind: s.status === 'won' ? 'won' : (s.outcome?.kind ?? 'running') });
+    if (s.outcome?.kind === 'checkpoint') failDays[Math.round(s.outcome.timeDays)] = (failDays[Math.round(s.outcome.timeDays)] ?? 0) + 1;
   }
   const wins = results.filter((r) => r.kind === 'won').length;
   const ws = results.map((r) => r.w).sort((a, b) => a - b);
   const med = ws[Math.floor(ws.length / 2)] / 100;
   const kinds: Record<string, number> = {};
   for (const r of results) kinds[r.kind] = (kinds[r.kind] ?? 0) + 1;
-  console.log(`skill ${skill}: win ${((wins / N) * 100).toFixed(0)}%  median $${Math.round(med).toLocaleString()}  outcomes ${JSON.stringify(kinds)}`);
+  console.log(`skill ${skill}: win ${((wins / N) * 100).toFixed(0)}%  median $${Math.round(med).toLocaleString()}  outcomes ${JSON.stringify(kinds)} failed reviews by day ${JSON.stringify(failDays)}`);
 }

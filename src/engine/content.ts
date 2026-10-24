@@ -101,6 +101,7 @@ export function validateEvents(events: EventDef[], assetIds: Set<string>): strin
         if (seen.has(f.eventId)) errs.push(`${q}.eventId: duplicate follow-up ${f.eventId}`);
         seen.add(f.eventId);
         if (!isNum(f.delayDays) || f.delayDays < 0) errs.push(`${q}.delayDays: finite and >= 0`);
+        if (f.chance !== undefined && !(isNum(f.chance) && f.chance > 0 && f.chance <= 1)) errs.push(`${q}.chance: must be in (0, 1]`);
         parents.set(f.eventId, [...(parents.get(f.eventId) ?? []), e.id]);
         const child = byId.get(f.eventId);
         if (child && child.selection?.randomEligible) errs.push(`${q}: follow-up ${f.eventId} must have randomEligible false`);
@@ -163,7 +164,8 @@ export function buildContent(assets: Asset[], events: EventDef[]): Content {
 
 export function eventTag(def: EventDef): EventTag {
   if (def.tag) return def.tag;
-  if (def.effects.some((e) => e.delayDays === 0)) return 'breaking';
+  // effects that start within ~1.5 days are breaking news (prices digest them over the next days)
+  if (def.effects.some((e) => e.delayDays <= 1.5)) return 'breaking';
   if (def.followUps.length > 0) return 'announcement';
   return 'update';
 }

@@ -8,6 +8,7 @@ import { useElementSize, useGame } from '../hooks';
 import { store } from '../store';
 import { CATEGORY_COLOR, TAG_COLOR, dayLabel } from '../util';
 import { Avatar, AssetBadge } from './shared';
+import { Icon } from './icons';
 
 const M = { l: 56, r: 16, t: 14, b: 26 };
 
@@ -53,7 +54,7 @@ export function NetWorthPanel() {
           ))}
           {[0, 20, 40, 60, 80, 100].map((d) => <text key={d} x={X(d)} y={H - 8} textAnchor="middle" className="c-label">{`Day ${Math.max(1, d)}`}</text>)}
           <line x1={M.l} x2={W - M.r} y1={Y(S.targetWealthCents)} y2={Y(S.targetWealthCents)} className="c-goal" />
-          <text x={W - M.r - 4} y={Y(S.targetWealthCents) - 6} textAnchor="end" className="c-label goal">🏁 $1M</text>
+          <text x={W - M.r - 4} y={Y(S.targetWealthCents) - 6} textAnchor="end" className="c-label goal">Goal $1M</text>
           <path d={chad.join('')} fill="none" stroke="var(--purple)" strokeWidth="1.8" strokeDasharray="5 4" opacity="0.9" />
           <path d={line} fill="none" stroke="var(--accent)" strokeWidth="2.4" strokeLinejoin="round" />
           {S.checkpoints.map((c) => {
@@ -167,7 +168,7 @@ function ActivityLog({ onNews }: { onNews: (id: number) => void }) {
           <button key={l.id} className={`log-row k-${l.kind} ${l.tone ?? ''}`} disabled={!inst} onClick={() => inst && onNews(inst.id)}>
             <span className="log-day">{dayLabel(l.day)}</span>
             <span className="log-kind" style={inst ? { color: TAG_COLOR[inst.tag] } : undefined}>
-              {l.kind === 'news' ? '📰' : l.kind === 'trade' ? '💱' : l.kind === 'liquidation' ? '🚨' : l.kind === 'checkpoint' ? '🏛' : l.kind === 'achievement' ? '🏆' : '•'}
+              <Icon name={l.kind === 'news' ? 'news' : l.kind === 'trade' ? 'swap' : l.kind === 'liquidation' ? 'alert' : l.kind === 'checkpoint' ? 'bank' : l.kind === 'achievement' ? 'trophy' : 'more'} size={15} />
             </span>
             <span className="log-text">{l.text}</span>
           </button>
@@ -186,7 +187,7 @@ function Trophies() {
         const got = s.achievements.includes(a.id);
         return (
           <div key={a.id} className={`trophy ${got ? 'got' : ''}`}>
-            <span className="t-icon">{got ? a.icon : '🔒'}</span>
+            <span className="t-icon"><Icon name={got ? a.icon : 'lock'} size={22} /></span>
             <div>
               <b>{a.title}</b>
               <small>{a.description}</small>

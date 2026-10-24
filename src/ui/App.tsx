@@ -13,6 +13,7 @@ import { TitleScreen } from './components/TitleScreen';
 import { Cutscene } from './components/Cutscene';
 import { EndScreen } from './components/EndScreen';
 import { store } from './store';
+import { Icon } from './components/icons';
 
 export function App() {
   const g = useGame();
@@ -56,8 +57,8 @@ export function App() {
       <CheckpointBanner />
       {s.status === 'paused' && (
         <div className="pause-banner" role="status">
-          <span>⏸ Game paused. Trading is disabled. You can still read news and inspect charts.</span>
-          <button className="btn primary" onClick={() => store.togglePause()}>▶ Resume</button>
+          <span><Icon name="pause" /> Game paused. Trading is disabled. You can still read news and inspect charts.</span>
+          <button className="btn primary" onClick={() => store.togglePause()}><Icon name="play" /> Resume</button>
         </div>
       )}
       <main className="grid">

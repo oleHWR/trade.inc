@@ -4,6 +4,7 @@ import { secondsPerDay } from '../../engine/engine';
 import { fmtClock, fmtMoney } from '../../engine/money';
 import { useGame } from '../hooks';
 import { Avatar } from './shared';
+import { Icon } from './icons';
 
 export function CheckpointBanner() {
   const g = useGame();
@@ -50,11 +51,11 @@ export function CheckpointBanner() {
             const r = s.checkpointResults.find((x) => x.day === c.day);
             return (
               <span key={c.day} className={`chip ${r ? (r.passed ? 'pass' : 'fail') : ''}`}>
-                {r ? (r.passed ? '✓' : '✗') : '○'} Day {c.day}: {fmtMoney(c.minimumWealthCents, { decimals: false })}
+                <Icon name={r ? (r.passed ? 'check' : 'cross') : 'clock'} size={13} /> Day {c.day}: {fmtMoney(c.minimumWealthCents, { decimals: false })}
               </span>
             );
           })}
-          <span className="chip goal">🏁 Day {S.gameDays}: {fmtMoney(S.targetWealthCents, { decimals: false })} to win</span>
+          <span className="chip goal"><Icon name="flag" size={13} /> Day {S.gameDays}: {fmtMoney(S.targetWealthCents, { decimals: false })} to win</span>
           <span className="cp-note">Pass each check once. Dipping afterwards is fine. Reaching the goal early wins instantly.</span>
         </div>
       )}
