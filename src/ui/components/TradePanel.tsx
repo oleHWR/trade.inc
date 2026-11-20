@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { CONTENT } from '../../content';
-import { availableCash, coverCostOf, liquidationPriceCents, maxBuyQty, maxShortQty, unrealizedLong, unrealizedShort } from '../../engine/accounting';
+import { availableCash, averageEntryPriceCents, coverCostOf, liquidationPriceCents, maxBuyQty, maxShortQty, unrealizedLong, unrealizedShort } from '../../engine/accounting';
 import { fmtMoney, fmtPrice } from '../../engine/money';
 import { useGame } from '../hooks';
 import { store } from '../store';
+import { ExitOrdersForm } from './ExitOrdersForm';
 
 export function TradePanel({ assetId }: { assetId: string }) {
   const g = useGame();
@@ -12,6 +13,7 @@ export function TradePanel({ assetId }: { assetId: string }) {
   const price = s.prices[assetId];
   const long = s.longs[assetId];
   const short = s.shorts[assetId];
+  const position = short ?? long;
   const [mode, setMode] = useState<'long' | 'short'>('long');
   const [qtyText, setQtyText] = useState('5');
   const [fb, setFb] = useState<{ ok: boolean; text: string } | null>(null);
@@ -118,6 +120,17 @@ export function TradePanel({ assetId }: { assetId: string }) {
       <div className={`feedback ${fb ? (fb.ok ? 'ok' : 'err') : ''}`} role="status" aria-live="polite">
         {fb?.text ?? (paused ? 'Game paused. Resume before trading.' : ended ? 'Run finished.' : `Available cash: ${fmtMoney(avail, { decimals: false })}`)}
       </div>
+      {position && (
+        <ExitOrdersForm
+          key={`${assetId}:${short ? 'short' : 'long'}`}
+          assetId={assetId}
+          orders={position.exitOrders}
+          entryPriceCents={averageEntryPriceCents(position)}
+          minimumPriceCents={s.settings.minimumPriceCents}
+          short={!!short}
+          disabled={disabled}
+        />
+      )}
     </section>
   );
 }

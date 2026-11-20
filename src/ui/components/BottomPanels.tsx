@@ -168,7 +168,7 @@ function ActivityLog({ onNews }: { onNews: (id: number) => void }) {
           <button key={l.id} className={`log-row k-${l.kind} ${l.tone ?? ''}`} disabled={!inst} onClick={() => inst && onNews(inst.id)}>
             <span className="log-day">{dayLabel(l.day)}</span>
             <span className="log-kind" style={inst ? { color: TAG_COLOR[inst.tag] } : undefined}>
-              <Icon name={l.kind === 'news' ? 'news' : l.kind === 'trade' ? 'swap' : l.kind === 'liquidation' ? 'alert' : l.kind === 'checkpoint' ? 'bank' : l.kind === 'achievement' ? 'trophy' : 'more'} size={15} />
+              <Icon name={l.kind === 'news' ? 'news' : l.kind === 'trade' || l.kind === 'exit_order' ? 'swap' : l.kind === 'liquidation' ? 'alert' : l.kind === 'checkpoint' ? 'bank' : l.kind === 'achievement' ? 'trophy' : 'more'} size={15} />
             </span>
             <span className="log-text">{l.text}</span>
           </button>

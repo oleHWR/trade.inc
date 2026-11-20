@@ -6,15 +6,18 @@ import type {
   TradeAction,
   TradeRecord,
   TradeResult,
+  ExitOrderEdits,
+  ExitOrders,
   LogKind,
   CharacterId,
   Outcome,
 } from './types';
 import { type Content, eventTag } from './content';
 import { nextRandom } from './rng';
-import { quoteFromRaw, fmtMoney } from './money';
+import { quoteFromRaw, fmtMoney, priceAfterChange } from './money';
 import {
   availableCash,
+  averageEntryPriceCents,
   coverCostOf,
   lockedProceeds,
   reservedCollateral,
@@ -256,6 +259,7 @@ function processBoundary(s: RunState, ctx: Content, tb: number): void {
   }
 
   settleShorts(s, ctx);
+  executeExitOrders(s);
   const w = totalWealth(s);
   s.wealthHistory.push([tb, w]);
   if (w > s.peakWealthCents) s.peakWealthCents = w;
@@ -311,15 +315,15 @@ function applyEffect(s: RunState, ctx: Content, eventId: string, idx: number, tb
 
 // ---------------------------------------------------------------- shorts
 
-function recordTrade(
+function recordTrade<Realized extends Cents | null>(
   s: RunState,
   assetId: string,
   action: TradeRecord['action'],
   qty: number,
   value: Cents,
-  realized: Cents | null,
-): TradeRecord {
-  const rec: TradeRecord = {
+  realized: Realized,
+): TradeRecord & { realizedCents: Realized } {
+  const rec = {
     id: ++s.idCounter,
     day: s.timeDays,
     assetId,
@@ -426,6 +430,112 @@ function checkAchievements(s: RunState): void {
 
 const fail = (message: string): TradeResult => ({ ok: false, message });
 
+export function setExitOrders(s: RunState, assetId: string, edits: ExitOrderEdits | ExitOrders): TradeResult {
+  if (s.status !== 'running') return fail('Exit orders can only be changed while the game is running.');
+  const short = Object.hasOwn(s.shorts, assetId);
+  const positions = short ? s.shorts : s.longs;
+  if (!Object.hasOwn(positions, assetId)) return fail(`Open a position in ${assetId} before setting exit orders.`);
+  const position = positions[assetId];
+  const entry = averageEntryPriceCents(position);
+  const orders: ExitOrders = { stopLossCents: null, takeProfitCents: null, ...position.exitOrders };
+  const pending: ExitOrderEdits = 'stopLossCents' in edits ? {
+    stopLoss: edits.stopLossCents === null ? null : { unit: 'price', amount: edits.stopLossCents },
+    takeProfit: edits.takeProfitCents === null ? null : { unit: 'price', amount: edits.takeProfitCents },
+  } : edits;
+
+  const price = s.prices[assetId];
+  for (const [name, input, priceKey, percentageKey, above] of [
+    ['Stop-loss', pending.stopLoss, 'stopLossCents', 'stopLossBasisPoints', short],
+    ['Take-profit', pending.takeProfit, 'takeProfitCents', 'takeProfitBasisPoints', !short],
+  ] as const) {
+    if (input === undefined) continue;
+    if (input === null) {
+      orders[priceKey] = null;
+      delete orders[percentageKey];
+      continue;
+    }
+
+    const percent = input.unit === 'percent';
+    if (percent && (!Number.isSafeInteger(input.amount) || input.amount <= 0)) {
+      return fail(`${name} needs a positive percentage with at most two decimals.`);
+    }
+    const level = percent ? priceAfterChange(entry, above ? input.amount : -input.amount) : input.amount;
+    if (!Number.isSafeInteger(level) || level < s.settings.minimumPriceCents) {
+      if (percent) return fail(`${name} percentage must give a valid market price.`);
+      return fail(`${name} needs a price of at least ${fmtMoney(s.settings.minimumPriceCents, { decimals: true })} with at most two decimals.`);
+    }
+    if (above ? level <= price : level >= price) {
+      return fail(`${name} must be ${above ? 'above' : 'below'} the current price (${fmtMoney(price, { decimals: true })}).`);
+    }
+    orders[priceKey] = level;
+    if (percent) orders[percentageKey] = input.amount;
+    else delete orders[percentageKey];
+  }
+
+  if (orders.stopLossCents === null && orders.takeProfitCents === null) {
+    delete position.exitOrders;
+    return { ok: true, message: 'Exit orders removed.' };
+  }
+  position.exitOrders = orders;
+  return { ok: true, message: 'Exit orders saved.' };
+}
+
+function sellLong(s: RunState, assetId: string, qty: number) {
+  const position = s.longs[assetId];
+  const value = qty * s.prices[assetId];
+  const basis = qty === position.qty ? position.costCents : Math.round((position.costCents * qty) / position.qty);
+  const realized = value - basis;
+  s.cashCents += value;
+  s.realizedCents += realized;
+  position.qty -= qty;
+  position.costCents -= basis;
+  if (position.qty === 0) delete s.longs[assetId];
+  if (basis > 0 && value >= 2 * basis) s.flags.diamond = 1;
+  return recordTrade(s, assetId, 'sell', qty, value, realized);
+}
+
+function coverShort(s: RunState, assetId: string, qty: number) {
+  const position = s.shorts[assetId];
+  const value = qty * s.prices[assetId];
+  const full = qty === position.qty;
+  const proceeds = full ? position.proceedsCents : Math.floor((position.proceedsCents * qty) / position.qty);
+  const collateral = full ? position.collateralCents : Math.floor((position.collateralCents * qty) / position.qty);
+  const availableAfter = availableCash(s) - value + proceeds + collateral;
+  if (availableAfter < 0) return null;
+
+  const realized = proceeds - value;
+  s.cashCents -= value;
+  s.realizedCents += realized;
+  position.qty -= qty;
+  position.proceedsCents -= proceeds;
+  position.collateralCents -= collateral;
+  if (position.qty === 0) delete s.shorts[assetId];
+  if (realized > (s.flags.bestShortCents ?? 0)) s.flags.bestShortCents = realized;
+  return recordTrade(s, assetId, 'cover', qty, value, realized);
+}
+
+function executeExitOrders(s: RunState): void {
+  for (const assetId of [...Object.keys(s.longs), ...Object.keys(s.shorts)]) {
+    const short = s.shorts[assetId];
+    const position = short ?? s.longs[assetId];
+    if (!position.exitOrders) continue;
+    const { stopLossCents, takeProfitCents } = position.exitOrders;
+    const price = s.prices[assetId];
+    const stopHit = stopLossCents !== null && (short ? price >= stopLossCents : price <= stopLossCents);
+    const targetHit = takeProfitCents !== null && (short ? price <= takeProfitCents : price >= takeProfitCents);
+    if (!stopHit && !targetHit) continue;
+
+    const trade = short ? coverShort(s, assetId, position.qty) : sellLong(s, assetId, position.qty);
+    if (!trade) continue;
+    trade.exitTrigger = stopHit ? 'stop_loss' : 'take_profit';
+    const name = stopHit ? 'Stop-loss' : 'Take-profit';
+    const realized = trade.realizedCents;
+    addLog(s, 'exit_order', `${name}: ${assetId} closed at ${fmtMoney(price, { decimals: true })} per unit (${fmtMoney(realized, { sign: true })}).`, {
+      tone: realized < 0 ? 'bad' : 'good',
+    });
+  }
+}
+
 export function submitTrade(s: RunState, ctx: Content, action: TradeAction, assetId: string, qty: number): TradeResult {
   if (s.status === 'paused') return fail('Game paused. Resume before trading.');
   if (s.status !== 'running') return fail('The run has ended. Start a new run to trade.');
@@ -470,16 +580,9 @@ export function submitTrade(s: RunState, ctx: Content, action: TradeAction, asse
     case 'sell': {
       if (shortPos && !longPos) return fail(`Your ${assetId} position is a short. Use Cover to close it.`);
       if (!longPos || qty > longPos.qty) return fail(`You own ${longPos?.qty ?? 0} ${longPos?.qty === 1 ? 'unit' : 'units'}; you cannot sell ${qty}.`);
-      const basis = qty === longPos.qty ? longPos.costCents : Math.round((longPos.costCents * qty) / longPos.qty);
-      const realized = value - basis;
-      s.cashCents += value;
-      s.realizedCents += realized;
-      longPos.qty -= qty;
-      longPos.costCents -= basis;
-      if (longPos.qty === 0) delete s.longs[assetId];
-      if (basis > 0 && value >= 2 * basis) s.flags.diamond = 1;
-      rec = recordTrade(s, assetId, 'sell', qty, value, realized);
-      message = `Sold ${qty} ${assetId} for ${fmtMoney(value, { decimals: true })} (${fmtMoney(realized, { sign: true })}).`;
+      const sale = sellLong(s, assetId, qty);
+      rec = sale;
+      message = `Sold ${qty} ${assetId} for ${fmtMoney(value, { decimals: true })} (${fmtMoney(sale.realizedCents, { sign: true })}).`;
       break;
     }
     case 'short': {
@@ -496,21 +599,10 @@ export function submitTrade(s: RunState, ctx: Content, action: TradeAction, asse
     case 'cover': {
       if (!shortPos) return fail(`You have no short in ${assetId}.`);
       if (qty > shortPos.qty) return fail(`You are short ${shortPos.qty} ${shortPos.qty === 1 ? 'unit' : 'units'}; you cannot cover ${qty}.`);
-      const full = qty === shortPos.qty;
-      const relP = full ? shortPos.proceedsCents : Math.floor((shortPos.proceedsCents * qty) / shortPos.qty);
-      const relC = full ? shortPos.collateralCents : Math.floor((shortPos.collateralCents * qty) / shortPos.qty);
-      const availAfter = s.cashCents - value - (lockedProceeds(s) - relP) - (reservedCollateral(s) - relC);
-      if (availAfter < 0) return fail(`Not enough available cash to cover ${qty} ${unit} (${fmtMoney(value)}).`);
-      const realized = relP - value;
-      s.cashCents -= value;
-      s.realizedCents += realized;
-      shortPos.qty -= qty;
-      shortPos.proceedsCents -= relP;
-      shortPos.collateralCents -= relC;
-      if (shortPos.qty === 0) delete s.shorts[assetId];
-      if (realized > (s.flags.bestShortCents ?? 0)) s.flags.bestShortCents = realized;
-      rec = recordTrade(s, assetId, 'cover', qty, value, realized);
-      message = `Covered ${qty} ${assetId} for ${fmtMoney(value, { decimals: true })} (${fmtMoney(realized, { sign: true })}).`;
+      const cover = coverShort(s, assetId, qty);
+      if (!cover) return fail(`Not enough available cash to cover ${qty} ${unit} (${fmtMoney(value)}).`);
+      rec = cover;
+      message = `Covered ${qty} ${assetId} for ${fmtMoney(value, { decimals: true })} (${fmtMoney(cover.realizedCents, { sign: true })}).`;
       break;
     }
     default:

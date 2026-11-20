@@ -1,4 +1,9 @@
-import type { Cents, RunState } from './types';
+import type { Cents, LongPosition, RunState, ShortPosition } from './types';
+
+export function averageEntryPriceCents(position: LongPosition | ShortPosition): number {
+  const basis = 'costCents' in position ? position.costCents : position.proceedsCents;
+  return basis / position.qty;
+}
 
 export function longValue(s: RunState): Cents {
   let v = 0;

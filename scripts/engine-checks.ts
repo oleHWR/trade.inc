@@ -1,6 +1,6 @@
 import { DEFAULT_SETTINGS } from '../src/config/gameConfig';
 import { buildContent } from '../src/engine/content';
-import { advance, createRun, setPaused, submitTrade } from '../src/engine/engine';
+import { advance, createRun, setExitOrders, setPaused, submitTrade } from '../src/engine/engine';
 import { availableCash, totalWealth, lockedProceeds, reservedCollateral } from '../src/engine/accounting';
 import { CONTENT } from '../src/content';
 import type { Asset, EventDef, RunSettings, RunState } from '../src/engine/types';
@@ -201,8 +201,11 @@ for (const dur of [600, 900, 1200]) {
     { assetId: 'X', type: 'price_jump', delayDays: 0, durationDays: 0, changeFraction: 0.5, recovery: null },
     { assetId: 'X', type: 'price_jump', delayDays: 0, durationDays: 0, changeFraction: -0.2, recovery: null },
   ]));
+  submitTrade(s, ctx, 'buy', 'X', 2);
+  setExitOrders(s, 'X', { stopLossCents: null, takeProfitCents: 13000 });
   advance(s, ctx, (at + 1) * 6);
   eq('jumps combine multiplicatively', s.prices.X, 12000);
+  eq('intermediate quote in the same batch does not trigger an exit', s.longs.X?.qty, 2);
   // near collapse recovers to starting price, not pre-crash price
   ({ s, ctx, at } = run([{ assetId: 'X', type: 'near_collapse', delayDays: 0, durationDays: 0, changeFraction: -0.95, recovery: { waitDays: 4, durationDays: 8 } }]));
   advance(s, ctx, (at + 0.3) * 6);
@@ -216,6 +219,114 @@ for (const dur of [600, 900, 1200]) {
   // quote floor
   s.rawPrices.X = 0.2;
   eq('floor', Math.max(1, Math.floor(0.2 + 0.5)), 1);
+
+  // Exit orders fill at the final quote, including when it jumps across the trigger.
+  for (const { open, trigger, change, levels, close, fill, profit } of [
+    { open: 'buy', trigger: 'stop_loss', change: -0.25, levels: [9000, 12000], close: 'sell', fill: 7500, profit: -5000 },
+    { open: 'buy', trigger: 'take_profit', change: 0.2, levels: [9000, 12000], close: 'sell', fill: 12000, profit: 4000 },
+    { open: 'short', trigger: 'stop_loss', change: 0.25, levels: [12000, 8000], close: 'cover', fill: 12500, profit: -5000 },
+    { open: 'short', trigger: 'take_profit', change: -0.2, levels: [12000, 8000], close: 'cover', fill: 8000, profit: 4000 },
+  ] as const) {
+    ({ s, ctx, at } = run([{ assetId: 'X', type: 'price_jump', delayDays: 0, durationDays: 0, changeFraction: change, recovery: null }]));
+    const label = `${open} ${trigger}`;
+    submitTrade(s, ctx, open, 'X', 2);
+    check(`${label}: can set both exit prices`, setExitOrders(s, 'X', { stopLossCents: levels[0], takeProfitCents: levels[1] }).ok);
+    s = JSON.parse(JSON.stringify(s)) as RunState;
+    advance(s, ctx, (at + 1) * 6);
+    const exit = s.trades.at(-1);
+    eq(`${label}: automatic trade action`, exit?.action, close);
+    eq(`${label}: automatic trigger recorded`, exit?.exitTrigger, trigger);
+    eq(`${label}: filled at market quote`, exit?.priceCents, fill);
+    eq(`${label}: full position closed exactly once`, s.trades.length, 2);
+    check(`${label}: no remaining position`, !s.longs.X && !s.shorts.X);
+    eq(`${label}: cash includes realised profit or loss`, availableCash(s), DEFAULT_SETTINGS.startingCashCents + profit);
+    eq(`${label}: realised profit or loss`, s.realizedCents, profit);
+    check(`${label}: exit logged`, s.log.some((entry) => entry.kind === 'exit_order'));
+  }
+
+  ({ s, ctx, at } = run([{ assetId: 'X', type: 'price_jump', delayDays: 0, durationDays: 0, changeFraction: 0.8, recovery: null }]));
+  submitTrade(s, ctx, 'short', 'X', 2);
+  setExitOrders(s, 'X', { stopLossCents: 12000, takeProfitCents: null });
+  advance(s, ctx, (at + 1) * 6);
+  eq('margin call takes priority when a gap crosses both prices', s.trades.at(-1)?.action, 'liquidate');
+  eq('gap only closes the short once', s.trades.length, 2);
+}
+// ---- editing and clearing exit orders on an open position
+{
+  const s = quiet();
+  const stopOnly = { stopLossCents: 9500, takeProfitCents: null };
+  check('exit orders require an open position', !setExitOrders(s, 'RMT', stopOnly).ok);
+  submitTrade(s, CONTENT, 'buy', 'RMT', 3);
+  check('can set only a stop-loss', setExitOrders(s, 'RMT', stopOnly).ok);
+  for (const takeProfitCents of [9500, 10000, 10900.5, Infinity]) {
+    check('reject equal, wrong-side or invalid exit price', !setExitOrders(s, 'RMT', { stopLossCents: 9000, takeProfitCents }).ok);
+    eq('invalid edit preserves prior orders', s.longs.RMT.exitOrders?.stopLossCents, 9500);
+  }
+  submitTrade(s, CONTENT, 'sell', 'RMT', 1);
+  eq('partially sold position keeps its stop', s.longs.RMT.exitOrders?.stopLossCents, 9500);
+  setPaused(s, true);
+  check('cannot edit orders while paused', !setExitOrders(s, 'RMT', { stopLossCents: null, takeProfitCents: null }).ok);
+  s.rawPrices.RMT = 7000;
+  advance(s, CONTENT, 3);
+  eq('paused simulation does not trigger existing stop', s.longs.RMT.qty, 2);
+  setPaused(s, false);
+  check('both blank prices remove exit orders', setExitOrders(s, 'RMT', { stopLossCents: null, takeProfitCents: null }).ok);
+  advance(s, CONTENT, 3);
+  eq('removed stop does not execute on a price drop', s.longs.RMT.qty, 2);
+}
+// ---- percentage exit orders use average entry and keep their resolved prices
+{
+  const s = quiet();
+  submitTrade(s, CONTENT, 'buy', 'RMT', 2);
+  s.prices.RMT = 13000;
+  submitTrade(s, CONTENT, 'buy', 'RMT', 1);
+  s.prices.RMT = 10600;
+  check('long accepts a mix of percentage and dollar exit orders', setExitOrders(s, 'RMT', {
+    stopLoss: { unit: 'percent', amount: 500 },
+    takeProfit: { unit: 'price', amount: 14000 },
+  }).ok);
+  eq('long percentage stop uses weighted average entry and not market price', s.longs.RMT.exitOrders?.stopLossCents, 10450);
+  eq('dollar target uses the entered price verbatim', s.longs.RMT.exitOrders?.takeProfitCents, 14000);
+  const saved = JSON.parse(JSON.stringify(s)) as RunState;
+  eq('saved order keeps its percentage input', saved.longs.RMT.exitOrders?.stopLossBasisPoints, 500);
+
+  s.prices.RMT = 12000;
+  submitTrade(s, CONTENT, 'buy', 'RMT', 1);
+  check('can edit one exit after the position entry price changes', setExitOrders(s, 'RMT', {
+    takeProfit: { unit: 'percent', amount: 1500 },
+  }).ok);
+  eq('new percentage uses the updated average and rounds half a cent up', s.longs.RMT.exitOrders?.takeProfitCents, 12938);
+  eq('editing another price preserves the fixed stop', s.longs.RMT.exitOrders?.stopLossCents, 10450);
+  const unchanged = JSON.stringify(s.longs.RMT.exitOrders);
+  check('a percentage cannot imply a non-positive price', !setExitOrders(s, 'RMT', {
+    stopLoss: { unit: 'percent', amount: 10000 },
+    takeProfit: null,
+  }).ok);
+  check('a percentage must be a valid positive amount', !setExitOrders(s, 'RMT', {
+    takeProfit: { unit: 'percent', amount: 0 },
+  }).ok);
+  check('a resolved percentage price must be on the correct side of the market', !setExitOrders(s, 'RMT', {
+    takeProfit: { unit: 'percent', amount: 500 },
+  }).ok);
+  eq('rejected edits leave both orders untouched', JSON.stringify(s.longs.RMT.exitOrders), unchanged);
+  check('can replace a percentage with a dollar price', setExitOrders(s, 'RMT', { stopLoss: { unit: 'price', amount: 11000 } }).ok);
+  eq('setting a dollar price clears the old percentage', s.longs.RMT.exitOrders?.stopLossBasisPoints, undefined);
+  check('can clear just one exit', setExitOrders(s, 'RMT', { takeProfit: null }).ok);
+  eq('clearing the target leaves the stop price intact', s.longs.RMT.exitOrders?.stopLossCents, 11000);
+  eq('clearing the target also clears its saved percentage', s.longs.RMT.exitOrders?.takeProfitBasisPoints, undefined);
+
+  const short = quiet();
+  submitTrade(short, CONTENT, 'short', 'RMT', 2);
+  check('short accepts positive percentages for both exit orders', setExitOrders(short, 'RMT', {
+    stopLoss: { unit: 'percent', amount: 1000 },
+    takeProfit: { unit: 'percent', amount: 1250 },
+  }).ok);
+  eq('short percentage stop is above entry', short.shorts.RMT.exitOrders?.stopLossCents, 11000);
+  eq('short percentage target is below entry', short.shorts.RMT.exitOrders?.takeProfitCents, 8750);
+  short.rawPrices.RMT = 8000;
+  advance(short, CONTENT, 2);
+  eq('percentage target executes on a market move', short.trades.at(-1)?.exitTrigger, 'take_profit');
+  eq('percentage target executes at the market price', short.trades.at(-1)?.priceCents, short.prices.RMT);
 }
 // ---- content validation catches bad data
 {

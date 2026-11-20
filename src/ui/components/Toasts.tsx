@@ -44,6 +44,8 @@ export function Toasts({ onNews }: { onNews: (id: number) => void }) {
         if (a) add({ kind: 'achievement', title: `Trophy: ${a.title}`, body: a.description, color: '#ffb454', ttl: 6000 });
       } else if (e.type === 'liquidation') {
         add({ kind: 'alert', title: 'Margin call', body: e.text, color: '#ff5d73', ttl: 9000 });
+      } else if (e.type === 'exit_order') {
+        add({ kind: 'alert', title: 'Position closed', body: e.text, color: e.loss ? '#ff5d73' : '#3ddc97', ttl: 7000 });
       }
     });
   }, []);

@@ -1,8 +1,8 @@
 import { CONTENT } from '../content';
 import { DEFAULT_SETTINGS, DIFFICULTIES } from '../config/gameConfig';
-import { advance, createRun, markRead, setPaused, submitTrade } from '../engine/engine';
+import { advance, createRun, markRead, setExitOrders, setPaused, submitTrade } from '../engine/engine';
 import { randomSeed } from '../engine/rng';
-import type { LogEntry, RunState, TradeAction, TradeResult } from '../engine/types';
+import type { ExitOrderEdits, ExitOrders, LogEntry, RunState, TradeAction, TradeResult } from '../engine/types';
 import { ACHIEVEMENTS } from '../engine/achievements';
 import { play } from './sound';
 
@@ -12,6 +12,7 @@ export type GameEvent =
   | { type: 'news'; instanceId: number }
   | { type: 'checkpoint'; day: number; passed: boolean }
   | { type: 'liquidation'; text: string }
+  | { type: 'exit_order'; text: string; loss: boolean }
   | { type: 'achievement'; id: string }
   | { type: 'finished' };
 
@@ -200,6 +201,8 @@ class GameStore {
         } else if (l.kind === 'liquidation' && l.text.startsWith('Margin')) {
           this.emit({ type: 'liquidation', text: l.text });
           play('margin');
+        } else if (l.kind === 'exit_order') {
+          this.emit({ type: 'exit_order', text: l.text, loss: l.tone === 'bad' });
         } else if (l.kind === 'checkpoint') {
           const day = s.checkpointResults[s.checkpointResults.length - 1];
           if (day) {
@@ -243,20 +246,34 @@ class GameStore {
     this.notify();
   }
 
-  trade(action: TradeAction, assetId: string, qty: number): TradeResult {
+  private advanceToActionTime(): RunState | null {
     const s = this.state;
-    if (!s) return { ok: false, message: 'No active run.' };
-    // The animation loop advances the engine every frame, so quotes are current at the moment of the order.
-    if (s.status === 'running') {
+    if (s?.status === 'running') {
       const now = performance.now();
       advance(s, CONTENT, s.activeSeconds + Math.max(0, (now - this.last) / 1000) * this.speed);
       this.last = now;
     }
+    return s;
+  }
+
+  trade(action: TradeAction, assetId: string, qty: number): TradeResult {
+    const s = this.advanceToActionTime();
+    if (!s) return { ok: false, message: 'No active run.' };
     const r = submitTrade(s, CONTENT, action, assetId, qty);
     play(r.ok ? (action === 'buy' || action === 'cover' ? 'buy' : 'sell') : 'error');
     this.afterAdvance();
     this.notify();
     return r;
+  }
+
+  updateExitOrders(assetId: string, orders: ExitOrderEdits | ExitOrders): TradeResult {
+    const s = this.advanceToActionTime();
+    if (!s) return { ok: false, message: 'No active run.' };
+    const result = setExitOrders(s, assetId, orders);
+    this.afterAdvance();
+    if (result.ok) this.save();
+    this.notify();
+    return result;
   }
 
   read(instanceId: number) {

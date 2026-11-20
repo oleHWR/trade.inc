@@ -9,6 +9,10 @@ export function quoteFromRaw(rawCents: number, minimumCents: Cents): Cents {
   return Math.max(minimumCents, roundHalfUp(rawCents));
 }
 
+export function priceAfterChange(entryCents: number, changeBasisPoints: number): Cents {
+  return roundHalfUp(entryCents * (10_000 + changeBasisPoints) / 10_000);
+}
+
 export function fmtMoney(cents: Cents, opts: { decimals?: boolean; sign?: boolean } = {}): string {
   const neg = cents < 0;
   const abs = Math.abs(cents);

@@ -86,15 +86,32 @@ export interface RunSettings {
 
 export type RunStatus = 'running' | 'paused' | 'won' | 'lost';
 
+export interface ExitOrders {
+  stopLossCents: Cents | null;
+  takeProfitCents: Cents | null;
+  stopLossBasisPoints?: number;
+  takeProfitBasisPoints?: number;
+}
+
+export type ExitOrderInput = { unit: 'price' | 'percent'; amount: number };
+
+export interface ExitOrderEdits {
+  /** An omitted field keeps its current order. An amount uses cents or hundredths of a percent. */
+  stopLoss?: ExitOrderInput | null;
+  takeProfit?: ExitOrderInput | null;
+}
+
 export interface LongPosition {
   qty: number;
   costCents: Cents; // total cost basis
+  exitOrders?: ExitOrders;
 }
 
 export interface ShortPosition {
   qty: number;
   proceedsCents: Cents; // locked sale proceeds still outstanding
   collateralCents: Cents; // reserved own money still outstanding
+  exitOrders?: ExitOrders;
 }
 
 export type QueueItem =
@@ -131,6 +148,7 @@ export interface EventInstance {
 export type LogKind =
   | 'news'
   | 'trade'
+  | 'exit_order'
   | 'liquidation'
   | 'checkpoint'
   | 'system'
@@ -156,6 +174,7 @@ export interface TradeRecord {
   priceCents: Cents;
   valueCents: Cents;
   realizedCents: Cents | null;
+  exitTrigger?: 'stop_loss' | 'take_profit';
 }
 
 export interface CheckpointResult {
