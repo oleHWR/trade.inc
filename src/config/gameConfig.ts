@@ -18,6 +18,7 @@ export const DEFAULT_SETTINGS: RunSettings = {
   defaultRecoveryWaitDays: 4,
   defaultRecoveryDurationDays: 8,
   firstEventNotBeforeDay: 1.5,
+  minimumNewsGapDays: 2,
   checkpoints: [
     { day: 10, minimumWealthCents: 500_000 },
     { day: 20, minimumWealthCents: 1_000_000 },
@@ -29,9 +30,10 @@ export const DEFAULT_SETTINGS: RunSettings = {
   eventWindows: [
     { startDay: 0, endDay: 20, rootCount: 5 },
     { startDay: 20, endDay: 40, rootCount: 5 },
-    { startDay: 40, endDay: 60, rootCount: 5 },
+    { startDay: 40, endDay: 60, rootCount: 4 },
     { startDay: 60, endDay: 80, rootCount: 5 },
-    { startDay: 80, endDay: 100, rootCount: 4 },
+    { startDay: 80, endDay: 90, rootCount: 2 },
+    { startDay: 90, endDay: 99, rootCount: 3 },
   ],
 };
 

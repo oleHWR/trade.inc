@@ -193,8 +193,11 @@ class GameStore {
     const fresh: LogEntry[] = s.log.filter((l) => l.id > this.seenLog);
     if (fresh.length) {
       this.seenLog = fresh[fresh.length - 1].id;
+      // A catch-up can publish several headlines in one frame. The feed keeps all of them.
+      const latestNews = fresh.filter((entry) => entry.kind === 'news').at(-1);
       for (const l of fresh) {
         if (l.kind === 'news' && l.eventInstanceId) {
+          if (l !== latestNews) continue;
           const inst = s.instances.find((i) => i.id === l.eventInstanceId);
           this.emit({ type: 'news', instanceId: l.eventInstanceId });
           play(inst?.tag === 'breaking' ? 'breaking' : 'news');

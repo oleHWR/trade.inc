@@ -354,16 +354,32 @@ for (const dur of [600, 900, 1200]) {
   eq('chance content valid', ctx.errors.length, 0);
   const settings: RunSettings = { ...DEFAULT_SETTINGS, checkpoints: [], eventWindows: [{ startDay: 0, endDay: 10, rootCount: 1 }], targetWealthCents: 1e12 };
   let published = 0;
+  let shortestGap = Infinity;
   for (let seed = 1; seed <= 200; seed++) {
     const s = createRun(settings, ctx, seed);
     advance(s, ctx, 20 * 6);
     const n = s.instances.filter((i) => i.eventId === 'c').length;
     check('chance chapter at most once', n <= 1);
+    if (n) shortestGap = Math.min(shortestGap, s.instances[1].publishedDay - s.instances[0].publishedDay);
     published += n;
   }
   check('chance 0.5 publishes roughly half the time', published > 60 && published < 140, String(published));
+  check('a closely authored chapter respects the news gap', Math.abs(shortestGap - DEFAULT_SETTINGS.minimumNewsGapDays!) < 1e-8);
   const bad = buildContent(assets, [ev('r', true, [{ eventId: 'c', delayDays: 1, chance: 1.5 }]), ev('c', false, [])]);
   check('invalid chance rejected', bad.errors.some((e) => /chance/.test(e)));
+}
+// ---- published roots and chapters share one news calendar
+{
+  const settings = { ...DEFAULT_SETTINGS, checkpoints: [] };
+  for (let seed = 1; seed <= 16; seed++) {
+    const s = createRun(settings, CONTENT, seed);
+    advance(s, CONTENT, settings.durationSeconds);
+    eq(`seed ${seed}: retains the full root quota`, s.scheduledRoots.length, 24);
+    eq(`seed ${seed}: three roots publish in the final ten days`, s.scheduledRoots.filter((r) => r.day >= 90).length, 3);
+    check(`seed ${seed}: roots and follow-ups respect the news gap`, s.instances.every((story, i) =>
+      i === 0 || story.publishedDay - s.instances[i - 1].publishedDay >= settings.minimumNewsGapDays! - 1e-8,
+    ));
+  }
 }
 // ---- default content is valid
 eq('default content valid', CONTENT.errors.length, 0);

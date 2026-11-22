@@ -451,10 +451,10 @@ Follow-up-only chapters must not be randomly published out of context. Chains mu
 ### 14.2 Scheduling method
 
 1. Divide a window into as many time slots as its root count.
-2. Choose one random publication time inside each slot.
+2. Start from a random time inside each slot and find which stories can fit.
 3. Choose an eligible pool and event using configured weights.
-4. Reserve that event so a non-repeatable story is not selected again in the run.
-5. Schedule its follow-ups relative to their parent publications.
+4. Reserve the root and all possible chapters at least `minimumNewsGapDays` apart from other headlines.
+5. Publish follow-ups relative to their parents, delaying a chapter when needed to preserve the gap.
 
 **No-repeat rule:** every event definition appears at most once per run. There is no need for repeatable events in a 50-100-event library supporting a much smaller run selection.
 
@@ -468,11 +468,12 @@ Do not guarantee a root quota by silently dropping unavailable events. Validate 
 | --- | ---: |
 | Days 0-20 | 5 |
 | Days 20-40 | 5 |
-| Days 40-60 | 5 |
+| Days 40-60 | 4 |
 | Days 60-80 | 5 |
-| Days 80-100 | 4 |
+| Days 80-90 | 2 |
+| Days 90-99 | 3 |
 
-This gives 24 roots, roughly one every 25 real seconds at the default ten-minute duration before follow-ups. Average spacing becomes 37.5 seconds at fifteen minutes or 50 seconds at twenty minutes; the root count does not automatically increase. A run with several story chains may produce around 30-40 publications. Authors can adjust these values against reading time, opportunities and their actual library; implementation starts with the stated counts. A library of 50-100 events does not imply that all of them appear in one run.
+This gives 24 roots, including three in the final ten game days. The default minimum gap between headlines is two game days, or 12 seconds at 1× in a ten-minute run. Follow-ups follow the same gap. Faster playback and shorter runs scale the real time available to read. Authors can adjust the gap and window quotas against their story library.
 
 Window boundaries are half-open: an event exactly at a shared boundary belongs to the later window. Publication times for new roots must be before the final deadline.
 
@@ -757,7 +758,7 @@ Use one obvious settings file, such as `src/config/gameConfig.ts`. Its data must
 | `defaultRecoveryWaitDays` | 4 | Guard waiting period. Authored near-collapse effects set their own. |
 | `defaultRecoveryDurationDays` | 8 | Guard recovery duration. Authored effects set their own. |
 | Checkpoints | Section 7.5's six entries | Store day and `minimumWealthCents` for each entry. |
-| Event windows | Section 14.3's five entries | Store start/end game day, `rootCount` and pool weights. |
+| Event windows | Section 14.3 | Store start/end game day, `rootCount` and pool weights. |
 | Pool weights | 1 for each non-empty authored root pool initially | Equal pool probability until authors tune it. |
 | Asset selection | Every valid entry in the asset catalogue | Do not maintain a second compulsory hard-coded list of tickers. |
 

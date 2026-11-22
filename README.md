@@ -17,7 +17,7 @@ npm run build && npm run preview   # presentation build
 ```
 
 Demo URL: `http://localhost:5173/?duration=300&seed=42` (5 min run, repeatable event schedule).
-Space = pause/resume.
+Space pauses or resumes during a run, even when a trading control has focus. Enter still activates focused buttons.
 
 ## What is in the game
 
@@ -25,7 +25,7 @@ Space = pause/resume.
 | --- | --- |
 | Trading | Long (Buy/Sell) and Short (Short/Cover) with 100% collateral, locked proceeds, automatic margin calls at +75%, settlement, integer-cent accounting |
 | World | Flat map with pulsing news markers, clusters, global (worldwide) chips, news feed, spotlight chips, character quips |
-| Events | 102 authored events (72 random roots, 30 follow-ups): breaking shocks that unfold over 1 to 3.5 days, developing stories, rumours, trends, near-collapse with guaranteed recovery, probabilistic follow-ups (`chance`) |
+| Events | 104 authored events (72 random roots, 32 follow-ups): breaking shocks that unfold over 1 to 3.5 days, developing stories, rumours, trends, near-collapse with guaranteed recovery, probabilistic follow-ups (`chance`) |
 | Run | Pause, 0.5x/1x/2x/4x speed, autosave and continue, difficulty (Chill/Normal/Brutal), run length 5/10/15/20 min |
 | Story | Parents' progress reviews (survival checkpoints), cutscene intro, rival Chad, trophies, win scene, burger-job contract ending |
 | UI | Dark/light theme, ticker, live charts with entry line and hover, portfolio, activity log, sound (WebAudio, mutable), drawn character portraits and SVG icons (no emoji) |
@@ -48,7 +48,7 @@ npm run test:engine        # behaviour checks from section 21 of the concept, pl
 npm run sim -- 150         # balance probe: bots that read the news with 35/60/85/100% skill
 ```
 
-Current balance probe (150 seeds): skill 0.35 wins about 5%, 0.6 about 30%, 0.85 about 45%, 1.0 about 55%.
+Current balance probe (150 seeds): skill 0.35 wins 9%, 0.6 wins 33%, 0.85 wins 58%, and 1.0 wins 67%.
 
 ## Adding content (no code changes)
 
@@ -80,6 +80,7 @@ Run `npm run validate:content` afterwards: errors name file, event id and field.
 
 - All money is integer cents. Quotes round half-up once, floor 1 cent. Internal price state is float so slow trends do not lose cents.
 - One clock: `secondsPerDay = durationSeconds / gameDays`. Everything (events, trends, recovery, checkpoints) is in game days.
+- The schedule reserves two game days between headlines and places three of the 24 root events in the final ten days. Follow-ups share the same spacing.
 - Boundaries (price step, event, effect, recovery end, checkpoint, deadline) are processed in order, so late browser callbacks cannot skip anything.
 - Outcome order at one timestamp: bankruptcy, victory, checkpoint, deadline.
 - Forex quotes are per lot (100 EUR, 10,000 JPY, 100 CHF) so one-cent rounding stays harmless.

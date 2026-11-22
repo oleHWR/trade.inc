@@ -175,6 +175,8 @@ export function validateSettings(s: RunSettings): string[] {
   const errs: string[] = [];
   if (!(s.durationSeconds > 0) || !Number.isFinite(s.durationSeconds)) errs.push('gameConfig: durationSeconds must be positive and finite');
   if (!Number.isInteger(s.gameDays) || s.gameDays <= 0) errs.push('gameConfig: gameDays must be a positive integer');
+  if (s.minimumNewsGapDays !== undefined && (!Number.isFinite(s.minimumNewsGapDays) || s.minimumNewsGapDays < 0))
+    errs.push('gameConfig: minimumNewsGapDays must be finite and non-negative');
   for (const c of s.checkpoints) if (!(c.day > 0 && c.day < s.gameDays)) errs.push(`gameConfig: checkpoint day ${c.day} outside calendar`);
   for (const w of s.eventWindows) {
     if (!(w.startDay >= 0 && w.endDay <= s.gameDays && w.startDay < w.endDay)) errs.push(`gameConfig: window ${w.startDay}-${w.endDay} outside calendar`);

@@ -31,18 +31,19 @@ export function App() {
     store.read(id);
   }, []);
 
-  // space toggles pause while playing
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const t = e.target as HTMLElement;
-      if (store.phase !== 'game' || t.tagName === 'INPUT' || t.tagName === 'BUTTON') return;
-      if (e.code === 'Space') {
-        e.preventDefault();
-        store.togglePause();
-      }
+      const status = store.state?.status;
+      if (e.code !== 'Space' || e.altKey || e.ctrlKey || e.metaKey) return;
+      if (store.phase !== 'game' || (status !== 'running' && status !== 'paused')) return;
+
+      // Consume Space before it can activate a focused trade control.
+      e.preventDefault();
+      e.stopPropagation();
+      if (!e.repeat) store.togglePause();
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
   }, []);
 
   const s = g.state;

@@ -119,6 +119,9 @@ small { font-size: 11.5px; }
 
 /* ---------- top bar */
 .topbar {
+  /* Keep the menu's stacking context above the masked ticker. */
+  position: relative;
+  z-index: 1;
   display: grid; grid-template-columns: auto 1.2fr 1fr 1.5fr auto; gap: 24px; align-items: center; padding: 14px 20px;
   background: var(--panel); border: 1px solid var(--border); border-radius: 20px; box-shadow: var(--shadow); backdrop-filter: blur(14px);
 }

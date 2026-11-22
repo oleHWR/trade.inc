@@ -82,6 +82,8 @@ export interface RunSettings {
   eventWindows: EventWindow[];
   /** Earliest game day a first root may appear, so players can read the intro. */
   firstEventNotBeforeDay: number;
+  /** Minimum spacing between headlines, measured on the game clock. */
+  minimumNewsGapDays?: number;
 }
 
 export type RunStatus = 'running' | 'paused' | 'won' | 'lost';

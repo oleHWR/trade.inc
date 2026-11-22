@@ -13,6 +13,7 @@ import type {
   Outcome,
 } from './types';
 import { type Content, eventTag } from './content';
+import { planStory, scheduleRoots } from './eventSchedule';
 import { nextRandom } from './rng';
 import { quoteFromRaw, fmtMoney, priceAfterChange } from './money';
 import {
@@ -72,56 +73,11 @@ export function createRun(settings: RunSettings, ctx: Content, seed: number, cat
     s.history[a.id] = [[0, a.startingPriceCents]];
     if (categoryFlags) s.flags['cat_' + a.id] = ['stock', 'crypto', 'commodity', 'forex'].indexOf(a.category) + 1;
   }
-  scheduleRoots(s, ctx);
+  s.scheduledRoots = scheduleRoots(s, ctx);
+  for (const root of s.scheduledRoots) {
+    pushQueue(s, { at: root.day, kind: 'publish', eventId: root.eventId, parentInstance: null });
+  }
   return s;
-}
-
-function weightedPick<T>(s: RunState, items: T[], weight: (t: T) => number): T {
-  const total = items.reduce((a, t) => a + weight(t), 0);
-  let r = nextRandom(s) * total;
-  for (const it of items) {
-    r -= weight(it);
-    if (r <= 0) return it;
-  }
-  return items[items.length - 1];
-}
-
-/** Schedules root events window by window (latest window first: it is the most constrained). */
-function scheduleRoots(s: RunState, ctx: Content): void {
-  const S = s.settings;
-  const used = new Set<string>();
-  const windows = [...S.eventWindows].sort((a, b) => b.startDay - a.startDay);
-  for (const w of windows) {
-    const slot = (w.endDay - w.startDay) / Math.max(1, w.rootCount);
-    for (let i = 0; i < w.rootCount; i++) {
-      const slotStart = w.startDay + i * slot;
-      let t = slotStart + nextRandom(s) * slot;
-      if (t < S.firstEventNotBeforeDay) t = S.firstEventNotBeforeDay + nextRandom(s) * Math.max(0.5, slot - S.firstEventNotBeforeDay);
-      t = Math.min(t, S.gameDays - 0.01);
-      const fits = (when: number) =>
-        ctx.roots.filter((e) => !used.has(e.id) && ctx.horizonDays(e.id) + when <= S.gameDays - 0.05);
-      let eligible = fits(t);
-      if (!eligible.length) {
-        t = Math.max(slotStart, S.firstEventNotBeforeDay);
-        eligible = fits(t);
-      }
-      if (!eligible.length)
-        throw new Error(
-          `Content error: no eligible root event for window ${w.startDay}-${w.endDay} (slot ${i + 1}/${w.rootCount}); add shorter events or reduce rootCount.`,
-        );
-      const pools = [...new Set(eligible.map((e) => e.pool))];
-      const pool = weightedPick(s, pools, (p) => w.poolWeights?.[p] ?? 1);
-      const ev = weightedPick(
-        s,
-        eligible.filter((e) => e.pool === pool),
-        (e) => e.selection.weight,
-      );
-      used.add(ev.id);
-      s.scheduledRoots.push({ eventId: ev.id, day: t });
-      pushQueue(s, { at: t, kind: 'publish', eventId: ev.id, parentInstance: null });
-    }
-  }
-  s.scheduledRoots.sort((a, b) => a.day - b.day);
 }
 
 type NewQueueItem =
@@ -283,10 +239,17 @@ function publishEvent(s: RunState, ctx: Content, eventId: string, parent: number
   def.effects.forEach((_, i) =>
     pushQueue(s, { at: tb + def.effects[i].delayDays, kind: 'effect', instanceId: inst.id, eventId, effectIndex: i }),
   );
+  if (!def.followUps.length) return;
+
+  let root = def;
+  while (ctx.parentOf.has(root.id)) root = ctx.eventById.get(ctx.parentOf.get(root.id)!)!;
+  const { publicationDays } = planStory(ctx, root.id, s.settings.minimumNewsGapDays ?? 0);
+  const publishedAt = publicationDays.get(eventId)!;
   for (const f of def.followUps) {
     // probabilistic chapters roll once, at the parent's publication
     if (f.chance !== undefined && f.chance < 1 && nextRandom(s) >= f.chance) continue;
-    pushQueue(s, { at: tb + f.delayDays, kind: 'publish', eventId: f.eventId, parentInstance: inst.id });
+    const delay = publicationDays.get(f.eventId)! - publishedAt;
+    pushQueue(s, { at: tb + delay, kind: 'publish', eventId: f.eventId, parentInstance: inst.id });
   }
 }
 
